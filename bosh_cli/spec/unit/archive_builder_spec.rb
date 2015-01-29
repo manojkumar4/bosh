@@ -79,7 +79,7 @@ describe Bosh::Cli::ArchiveBuilder, 'dev build' do
       release_source.add_file('src', 'unmatched.txt')
     end
 
-    it 'copies the resource files to build directory' do
+    it 'copies the Resource files to build directory' do
       builder.build
 
       explosion = open_archive(builder.tarball_path)
@@ -91,7 +91,45 @@ describe Bosh::Cli::ArchiveBuilder, 'dev build' do
       end
     end
 
-    context 'when the resource is a Package' do
+    it 'returns metadata for the built Resource' do
+      expect(builder.build).to be_a(Hash)
+    end
+
+    describe 'the metadata' do
+      let(:metadata) { builder.build }
+
+      it 'includes metadata provided by the Resource' do
+        resource.metadata.each do |key, value|
+          expect(metadata[key]).to eq(value)
+        end
+      end
+
+      it 'includes fingerprint, provided by the build process' do
+        expect(metadata['fingerprint']).to eq(builder.fingerprint)
+      end
+
+      it 'includes checksum, provided by the build process' do
+        expect(metadata['sha1']).to eq(builder.checksum)
+      end
+
+      it 'includes version, provided by the build process' do
+        expect(metadata['version']).to eq(builder.version)
+      end
+
+      it 'includes new_version, provided by the build process' do
+        expect(metadata['new_version']).to eq(builder.new_version?)
+      end
+
+      it 'includes notes, provided by the build process' do
+        expect(metadata['notes']).to eq(builder.notes)
+      end
+
+      it 'includes tarball_path, provided by the build process' do
+        expect(metadata['tarball_path']).to eq(builder.tarball_path)
+      end
+    end
+
+    context 'when the Resource is a Package' do
       it 'generates a tarball' do
         builder.build
         expect(release_source).to have_file(".dev_builds/packages/#{resource_name}/#{builder.fingerprint}.tgz")
@@ -153,7 +191,7 @@ describe Bosh::Cli::ArchiveBuilder, 'dev build' do
       end
     end
 
-    context 'when metadata file has the same name as one of the resource files' do
+    context 'when the Resource specifies a file that collides specific to BOSH packaging' do
       let(:resource_file_patterns) { ['*.rb', 'packaging'] }
 
       before do
@@ -241,7 +279,7 @@ describe Bosh::Cli::ArchiveBuilder, 'dev build' do
 
     it 'is used as the version' do
       builder.build
-      expect(builder.resource_version).to eq(reference_fingerprint)
+      expect(builder.version).to eq(reference_fingerprint)
     end
 
     it 'is based on the matched files, ignoring unmatched files' do
@@ -286,6 +324,18 @@ describe Bosh::Cli::ArchiveBuilder, 'dev build' do
 
     context 'when dependencies vary' do
       let(:resource_deps) { ['foo', 'bar', 'baz'] }
+
+      it 'varies' do
+        expect(builder.fingerprint).to_not eq(reference_fingerprint)
+      end
+    end
+
+    context 'when dependencies are not defined' do
+      let(:resource_deps) { nil }
+
+      before do
+        allow(resource).to receive(:dependencies).and_return(nil)
+      end
 
       it 'varies' do
         expect(builder.fingerprint).to_not eq(reference_fingerprint)
