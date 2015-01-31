@@ -182,22 +182,20 @@ module Bosh::Cli::Command
         release_builder
       end
 
-      def build_jobs(built_package_names, dry_run, final)
-        jobs = Bosh::Cli::JobBuilder.discover(
-          work_dir,
+      def build_jobs(packages, dry_run, final)
+        options = {
           :final => final,
-          :blobstore => release.blobstore,
           :dry_run => dry_run,
-          :package_names => built_package_names
-        )
-
-        jobs.each do |job|
+        }
+        jobs = Bosh::Cli::Resource::Job.discover(work_dir, packages)
+        artifacts = jobs.map do |job|
           say("Building #{job.name.make_green}...")
-          job.build
+          artifact = Bosh::Cli::ArchiveBuilder.new(work_dir, release.blobstore, options).build(job)
           nl
+          artifact
         end
 
-        jobs
+        artifacts
       end
 
       def save_final_release_name

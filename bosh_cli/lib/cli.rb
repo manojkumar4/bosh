@@ -78,6 +78,7 @@ require 'cli/versions/multi_release_support'
 
 require 'cli/archive_builder'
 require 'cli/build_artifact'
+require 'cli/resources/job'
 require 'cli/resources/package'
 require 'cli/changeset_helper'
 require 'cli/deployment_manifest_compiler'
